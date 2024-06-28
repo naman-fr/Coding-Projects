@@ -1,0 +1,143 @@
+function expenseTracker()
+    users = {'naman', 'namra', 'arpit','shailendra'};
+    passwords = {'202311055', '202311057', '202311016','202311078'};
+    roles = {'admin', 'admin', 'admin', 'admin'};
+    function authenticated = authenticateUser(username, password)
+        index = find(strcmp(users, username));
+        if ~isempty(index) && strcmp(passwords{index}, password)
+            authenticated = true;
+        else
+            authenticated = false;
+        end
+    end
+    function authorized = authorizeUser(role)
+        if strcmp(role, 'admin') || strcmp(role, 'user')
+            authorized = true;
+        else
+            authorized = false;
+        end
+    end
+    function runExpenseTracker()
+        num_categories = input('Enter the number of expense categories: ');
+        categories = cell(1, num_categories);
+        for i = 1:num_categories
+            categories{i} = input(['Enter name for category ', num2str(i), ': '], 's');
+        end
+        expenses = zeros(num_categories, 5); 
+        for t = 1:5 
+            disp(['Enter expenses for time period ', num2str(t)]);
+            for i = 1:num_categories
+                category_expense = randi([100 1000]); 
+                expenses(i, t) = category_expense;
+            end
+            disp('Expenses after this time period:');
+            disp(expenses(:, 1:t));
+        end
+        basisVectors = eye(num_categories);
+        expenseVectors = expenses' * basisVectors;
+        time_periods = 1:5;
+        linear_models = cell(num_categories, 1);
+        for i = 1:num_categories
+            linear_models{i} = fitlm(time_periods', expenses(i, :)');
+        end
+        future_time_periods = 6:10; 
+        forecasted_expenses = zeros(num_categories, numel(future_time_periods));
+        for i = 1:num_categories
+            forecasted_expenses(i, :) = predict(linear_models{i}, future_time_periods')';
+        end
+disp('-------------------------------------------------');
+disp('                 Expense Tracker                ');
+disp('-------------------------------------------------');
+disp('Total Expenses (Vector Space):');
+disp(sum(expenseVectors));
+disp('Forecasted Expenses:');
+disp(forecasted_expenses);
+disp('-------------------------------------------------');
+
+figure('Name', 'Expense Tracker - Visualizations', 'NumberTitle', 'off');
+
+subplot(2, 2, [1, 2]);
+bar(sum(expenseVectors));
+title('Total Expenses (Vector Space)');
+xlabel('Expense Category');
+ylabel('Amount');
+set(gca, 'xticklabel', categories);
+grid on;
+subplot(2, 2, 3);
+bar(future_time_periods, forecasted_expenses', 'stacked');
+title('Forecasted Expenses');
+xlabel('Time Period');
+ylabel('Amount');
+legend(cellstr(num2str((1:num_categories)', 'Category %d')));
+grid on;
+subplot(2, 2, 4);
+pie(sum(expenseVectors), categories);
+title('Total Expenses Pie Chart');
+[coeff, score, latent] = pca(expenses');
+figure;
+plot(1:length(latent), cumsum(latent) / sum(latent), 'ro-', 'LineWidth', 2);
+title('Explained Variance Ratio by Principal Components');
+xlabel('Principal Component');
+ylabel('Explained Variance Ratio');
+grid on;
+
+[U, S, V] = svd(expenses);
+disp('Singular Values:');
+disp(diag(S));
+k = 3; % Number of clusters
+idx = kmeans(expenses', k); % Transpose expenses to have each row represent a data point
+figure;
+gscatter(1:size(expenses, 2), sum(expenses), idx);
+title('Expense Clusters');
+xlabel('Time Period');
+ylabel('Total Expense');
+[W, H] = nnmf(expenses, 2); % 2 latent factors
+% Extract latent factors
+disp('Latent Factors (NMF):');
+disp(W);
+disp(H);
+f = ones(1, num_categories); 
+A = -eye(num_categories); 
+b = -5000 * ones(num_categories, 1); 
+lb = zeros(num_categories, 1);
+ub = Inf(num_categories, 1); 
+[x, fval] = linprog(f, A, b, [], [], lb, ub);
+disp('Optimized Budget Allocation:');
+disp(x);
+disp(['Total Expenses after Optimization: ', num2str(-fval)]);
+smoothingFactor = 0.5; 
+future_expenses = zeros(num_categories, 5); 
+for i = 1:num_categories
+    smoothed_data = exponentialSmoothing(expenses(i, :), smoothingFactor);
+    future_expenses(i, :) = interp1(1:numel(smoothed_data), smoothed_data, ...
+                                     numel(smoothed_data) + (1:5), 'pchip');
+end
+disp('Forecasted Expenses using Exponential Smoothing:');
+disp(future_expenses);
+function smoothed_data = exponentialSmoothing(data, alpha)
+    smoothed_data = zeros(size(data));
+    smoothed_data(1) = data(1); % Initialize first value
+    for t = 2:numel(data)
+        smoothed_data(t) = alpha * data(t) + (1 - alpha) * smoothed_data(t - 1);
+    end
+end
+
+
+
+    end
+    username = input('Enter username: ', 's');
+    password = input('Enter password: ', 's');
+    if authenticateUser(username, password)
+        disp('User authenticated.');
+        index = find(strcmp(users, username));
+        if authorizeUser(roles{index})
+            disp('User authorized.');
+            runExpenseTracker();
+        else
+            disp('User not authorized.');
+        end
+    else
+        disp('Authentication failed. Please check your username and password.');
+    end
+
+end
