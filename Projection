@@ -1,0 +1,19 @@
+n=3;
+
+P=randn(n);
+
+disp(P),
+
+I = eye(n);
+
+is_unitary = isequal ((I-2*P)* (I-2*P), I);
+
+disp('Is 1-2P unitary?');
+if is_unitary== 0
+
+disp('no');
+
+else
+
+disp('yes'); 
+end
